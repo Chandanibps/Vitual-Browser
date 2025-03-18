@@ -1,0 +1,66 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('git checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Chandanibps/Vitual-Browser.git'
+            }
+        }
+        
+        stage('OWASP dependency check') {
+            steps {
+               
+                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'dc'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+        stage('sonarqube') {
+            steps {
+               withSonarQubeEnv('sonar') {
+                   sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=virtual Browser \
+                    -Dsonar.projectKey=virtual Browser '''
+   
+                }
+            }
+        }
+        stage('dokcer bulid and tag') {
+            steps {
+               script {
+                   withDockerRegistry(credentialsId: 'dockerhub', toolName: 'docker') {
+                     dir('/var/lib/jenkins/workspace/virtual Browser/.docker/firefox') {
+                         sh 'docker build -t chandanibps/vb:latest .'
+   
+                      }
+                }
+               }
+            }
+        }
+        stage('Trivy scan') {
+            steps {
+                
+                sh "trivy image chandanibps/vb:latest"
+            
+            }
+        }
+        
+        stage("Docker  Push"){
+            steps{
+                script{
+                   withDockerRegistry(credentialsId: 'dockerhub', toolName: 'docker'){   
+                      
+                       sh "docker push chandanibps/vb:latest "
+                    }
+                }
+            }
+        }
+        stage("Deploy"){
+            steps{
+                  
+             sh "docker-compose up -d "
+                    
+                
+            }
+        }
+    }
+}
