@@ -4,10 +4,10 @@ FROM $BASE_IMAGE
 ARG SRC_URL="https://download.mozilla.org/?product=firefox-latest&os=linux64&lang=en-US&v=LATEST"
 
 #
-# install firefox
+# install required packages including 'file' to check file types
 RUN set -eux; apt-get update; \
     apt-get install -y --no-install-recommends openbox \
-    xz-utils bzip2 libgtk-3-0 libdbus-glib-1-2; \
+    xz-utils bzip2 libgtk-3-0 libdbus-glib-1-2 file; \
     #
     # fetch latest release
     wget --no-cache -O /tmp/firefox-setup.tar.bz2 "${SRC_URL}"; \
